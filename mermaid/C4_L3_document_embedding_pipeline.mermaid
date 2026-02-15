@@ -1,0 +1,27 @@
+flowchart LR
+  %% ==================================================
+  %% C4 Level 3 — Document Embedding Pipeline (batch/stream)
+  %% ==================================================
+  subgraph emb_pipe[Embedding Pipeline]
+    direction LR
+    connectors["Connectors (Blob, Share, CMMS, Git, HTTP)"]
+    parser["Parsing & Normalization (PDF/HTML/Markdown; OCR for images)"]
+    cleaner[Cleaning & Deduplication]
+    chunker["Chunking (window, overlap, headings)"]
+    enricher["Metadata Enricher (asset, model, tags, ACLs)"]
+    embedder["Embedding Generator (HF/Azure OpenAI embeddings)"]
+    upsert["Upsert Writer (batch/bulk)"]
+    sched["Scheduler/Orchestrator (Airflow/Dagster)"]
+    telem[Telemetry]
+  end
+
+  sources["(Manuals, SOPs, logs, technician notes)"]
+  vdb["(Vector DB: Milvus / Azure AI Search)"]
+  kv["(Key Vault: secrets, creds)"]
+  obs["[Azure Monitor]"]
+
+  sources --> connectors --> parser --> cleaner --> chunker --> enricher --> embedder --> upsert --> vdb
+  sched -.-> connectors
+  kv -.-> connectors
+  kv -.-> embedder
+  upsert --> telem --> obs

@@ -1,0 +1,11 @@
+sequenceDiagram
+  title Embedding Pipeline — minimal path
+  participant Orc as Orchestrator (Airflow/Dagster)
+  participant Src as Sources (Manuals/Notes/Logs)
+  participant Emb as Embedding Service
+  participant VDB as Vector DB
+
+  Orc->>Src: List new/changed docs
+  Src-->>Orc: URIs
+  Orc->>Emb: Parse + Chunk + Embed
+  Emb-->>VDB: Upsert embeddings (batch)

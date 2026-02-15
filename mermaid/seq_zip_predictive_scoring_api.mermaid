@@ -1,0 +1,15 @@
+sequenceDiagram
+  title Predictive Scoring — minimal path
+  participant UI as App (Technician)
+  participant API as Scoring API (AKS)
+  participant FS as Feature Store/Delta
+  participant MR as Model Runtime
+  participant Mon as Monitoring
+
+  UI->>API: POST /predict {asset, signals}
+  API->>FS: Fetch features
+  FS-->>API: Feature vector
+  API->>MR: Predict(features)
+  MR-->>API: score,label
+  API-->>UI: 200 {score,label}
+  API->>Mon: logs + metrics + drift sample

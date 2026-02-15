@@ -1,0 +1,27 @@
+flowchart TB
+  %% ==================================================
+  %% C4 Level 3 — Drift & Data Quality Monitoring
+  %% ==================================================
+  subgraph drift_mon["Drift & Data Quality (Evidently/InspectAI)"]
+    direction TB
+    collector["Prediction & Input Collector (stream/batch)"]
+    window[Windowing & Aggregations]
+    tests["Drift Tests (PSI, KS) + Data Quality Checks"]
+    evals["Performance Backfill (when ground truth arrives)"]
+    report[Reports & Dashboards]
+    thresholds[Thresholds & Alerts]
+    registry[Model Version Tracker]
+  end
+
+  pred_api["[Predictive Scoring API]"]
+  rag_srv["[RAG Orchestrator]"]
+  amon["[Azure Monitor / Alerts]"]
+  aml["(Azure ML Registry & Pipelines)"]
+
+  pred_api --> collector
+  rag_srv --> collector
+  collector --> window --> tests --> report
+  tests --> thresholds --> amon
+  evals --> report
+  registry <---> report
+  thresholds --> aml

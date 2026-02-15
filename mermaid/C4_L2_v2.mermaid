@@ -1,0 +1,68 @@
+flowchart TB
+  %% ============================================
+  %% C4 Level 2 — Container view
+  %% System: Intelligent Maintenance Assistant
+  %% ============================================
+
+  %% ---- People ----
+  tech((Technician))
+  mgr((Supervisor / Plant Manager))
+
+  %% ---- External systems ----
+  scada["SCADA / PLCs / Sensors"]
+  cmms["ERP / CMMS"]
+  aad["Azure AD (OIDC)"]
+  amon["Azure Monitor / Grafana"]
+  alerts["Ticketing / Notifications"]
+  subgraph system[Intelligent Maintenance Assistant]
+    direction TB
+
+    %% small internal hub to attach "system-level" edges
+    sys_bus{{System Boundary}}
+
+    %% UI containers
+    ui_app["Maintenance Application (web/mobile)"]
+    ui_chat["Troubleshooting Assistant (chat)"]
+    ingest["Ingestion & Feature Pipeline (Event Hubs + streaming/batch jobs)"]
+    dl["(Data Lake - Delta tables)"]
+    aml["Azure ML - Training & Registry"]
+    subgraph aks[AKS Runtime]
+      direction TB
+      api_pred["Predictive Scoring API (FastAPI)"]
+      api_rag["RAG Orchestrator API (FastAPI + LangChain/LlamaIndex)"]
+      llm["LLM Inference Service (GPU)"]
+      embed["Embedding Service (text → vectors)"]
+    end
+
+    vdb["(Vector DB Milvus or Azure AI Search)"]
+    drift["[Evidently / InspectAI (drift & quality)]"]
+  end
+
+  %% ---- People -> System ----
+  tech -->|view health & alerts| ui_app
+  tech -->|ask troubleshooting questions| ui_chat
+  mgr -->|monitor KPIs| ui_app
+
+  %% ---- External -> System ----
+  scada -->|telemetry & events| ingest
+  cmms <-->|work orders, assets| ui_app
+  aad -->|SSO tokens| ui_app
+  aad -->|SSO tokens| ui_chat
+
+  %% ---- Internal flows ----
+  ui_app -->|risk & anomaly requests| api_pred
+  ui_chat -->|question + context| api_rag
+
+  ingest -->|curated features| dl
+  dl -->|training data| aml
+  aml -->|deploy registered model| api_pred
+
+  api_rag -->|retrieve| vdb
+  api_rag -->|prompt with context| llm
+  embed -->|upsert embeddings| vdb
+
+  %% Observability & feedback
+  api_pred -->|inputs + predictions| drift
+  api_rag -->|RAG eval signals| drift
+  sys_bus -.->|logs, metrics, traces| amon
+  drift -->|alerts, tickets| alerts

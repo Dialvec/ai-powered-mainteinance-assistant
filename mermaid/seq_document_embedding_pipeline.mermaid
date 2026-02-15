@@ -1,0 +1,28 @@
+sequenceDiagram
+  title Document Embedding Pipeline — Ingestion → Embeddings → Vector DB
+  participant Sched as Orchestrator (Airflow/Dagster)
+  participant Conn as Connectors (Blob/CMMS/Git/HTTP)
+  participant KV as Key Vault
+  participant Parse as Parsing (PDF/HTML/OCR)
+  participant Clean as Cleaning & Dedup
+  participant Chunk as Chunking (window/overlap)
+  participant Meta as Metadata Enricher (asset/tags/ACL)
+  participant Emb as Embedding Service (HF/Azure OpenAI)
+  participant VDB as Vector DB (Milvus/Azure AI Search)
+  participant Tele as Telemetry (Azure Monitor)
+
+  Sched->>Conn: Trigger pipeline (source list, cursors)
+  Conn->>KV: Retrieve secrets/creds
+  KV-->>Conn: Credentials
+  Conn-->>Sched: Document batch (URIs, hashes)
+
+  loop For each document
+    Sched->>Parse: Fetch & parse (text, tables, images)
+    Parse-->>Clean: Parsed content
+    Clean-->>Chunk: Normalized, deduped content
+    Chunk-->>Meta: Chunks with headers/ids
+    Meta-->>Emb: Text + metadata
+    Emb-->>VDB: Upsert embeddings (batch/bulk)
+  end
+
+  Sched->>Tele: Metrics (ingested, upserted, failures, durations)

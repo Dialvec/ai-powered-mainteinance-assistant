@@ -1,0 +1,55 @@
+sequenceDiagram
+  title RAG Orchestrator — Grounded Q&A (AKS GPU + Vector DB)
+  participant UI as Troubleshooting UI
+  participant Ing as Ingress / API Gateway
+  participant RAG as RAG Orchestrator (FastAPI + LangChain/LlamaIndex)
+  participant AAD as Azure AD
+  participant QP as Query Parser / Intent Classifier
+  participant RET as Retriever (VectorDB client)
+  participant VDB as Vector DB (Milvus / Azure AI Search)
+  participant RR as Reranker (cross-encoder, optional)
+  participant PB as Prompt Builder (context + tools)
+  participant GR as Guardrails (policy, PII redaction)
+  participant LLM as LLM Inference Service (GPU on AKS)
+  participant FM as Formatter (citations, steps)
+  participant Tele as Telemetry (Azure Monitor)
+  participant Eval as LLM Eval (Evidently/DeepEval)
+
+  UI->>Ing: POST /rag/query {question, asset, token}
+  Ing->>RAG: Forward
+  RAG->>AAD: Validate token
+  AAD-->>RAG: OK
+
+  RAG->>QP: Parse/route (diagnosis vs. how-to)
+  QP-->>RAG: Parsed intent, entities
+
+  RAG->>RET: Similarity search (kNN) for chunks
+  RET->>VDB: Query embeddings (asset/domain filters)
+  VDB-->>RET: Top-k chunks
+  RET-->>RAG: Retrieved contexts
+
+  opt Rerank for quality
+    RAG->>RR: Rerank(top-k)
+    RR-->>RAG: Top-n reranked
+  end
+
+  RAG->>PB: Build prompt with citations + constraints
+  PB-->>RAG: Prompt + context
+
+  RAG->>GR: Apply guardrails (policies, redaction)
+  GR-->>RAG: Safe prompt
+
+  RAG->>LLM: Generate(answer) with context
+  LLM-->>RAG: Candidate answer
+
+  RAG->>FM: Format (steps, cautions, citations)
+  FM-->>RAG: Final message
+
+  RAG-->>Ing: 200 OK {answer, steps, sources}
+  Ing-->>UI: Response
+
+  par Telemetry
+    RAG->>Tele: Traces, latency, retrieval hit-rate, token usage
+  and Evaluation
+    RAG->>Eval: Answer + context for quality checks
+  end

@@ -1,0 +1,11 @@
+sequenceDiagram
+  title Drift & Quality — minimal path
+  participant API as Scoring API
+  participant RAG as RAG Orchestrator
+  participant Coll as Monitor (Evidently)
+  participant Alrt as Alerts
+
+  API-->>Coll: {features, score, model_ver}
+  RAG-->>Coll: {retrieval stats, answer flags}
+  Coll->>Coll: Drift/quality tests
+  Coll-->>Alrt: Alert on threshold breach

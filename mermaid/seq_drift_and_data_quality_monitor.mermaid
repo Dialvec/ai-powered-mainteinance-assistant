@@ -1,0 +1,29 @@
+sequenceDiagram
+  title Drift & Data Quality Monitoring — Streaming + Backfill
+  participant Pred as Predictive Scoring API
+  participant RAG as RAG Orchestrator
+  participant Coll as Collector (inputs/preds/logs)
+  participant Win as Windowing & Aggregations
+  participant Tests as Drift/Quality Tests (PSI/KS, schema)
+  participant Perf as Performance Backfill (when labels arrive)
+  participant Report as Reports & Dashboards
+  participant Th as Thresholds & Alerts
+  participant AM as Azure Monitor / Alerts
+  participant AML as Azure ML (Retrain Pipeline)
+
+  Pred-->>Coll: Async stream {features, score, model_version}
+  RAG-->>Coll: Async stream {retrieval stats, answer flags}
+  Coll->>Win: Group by time/model/asset
+
+  Win->>Tests: Run drift & data-quality checks
+  Tests-->>Report: Metrics, charts, trends
+
+  opt Ground truth available
+    Perf->>Report: Precision/recall, decay curves
+  end
+
+  Tests->>Th: Evaluate thresholds/SLOs
+  Th-->>AM: Alerts (email/Teams/on-call)
+  alt Severe/consistent drift
+    Th->>AML: Trigger retrain workflow (new data window)
+  end

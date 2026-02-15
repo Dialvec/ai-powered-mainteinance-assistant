@@ -1,0 +1,32 @@
+
+flowchart LR
+  %% ==================================================
+  %% C4 Level 3 — Predictive Scoring API (FastAPI)
+  %% ==================================================
+  subgraph pred_api["Predictive Scoring API (FastAPI on AKS)"]
+    direction LR
+    http[HTTP Router]
+    auth["Auth Middleware (Azure AD token validation)"]
+    validate[Request Schema Validator]
+    feat_adapter["Feature Adapter (align fields, defaults)"]
+    feat_xform["Real-time Feature Transforms (rolling stats, scaling)"]
+    model_loader["Model Loader (from AML registry)"]
+    inference["Inference Engine (ONNX/Torch runtime)"]
+    postproc["Post-processing (thresholds, rules, labels)"]
+    cache["In-memory Cache (optional)"]
+    telem[Telemetry Logger]
+  end
+
+  %% External dependencies (shown as context)
+  client["[Maintenance Application]"]
+  fs["(Delta / Feature Store)"]
+  aml["(Azure ML Model Registry)"]
+  obs["[Azure Monitor / Grafana]"]
+  drift["[Evidently (drift checks)]"]
+  client --> http --> auth --> validate --> feat_adapter --> feat_xform --> inference --> postproc --> client
+  aml --> model_loader
+  model_loader --> inference
+  fs --> feat_adapter
+  postproc --> telem --> obs
+  inference --> drift
+  cache <--> feat_xform

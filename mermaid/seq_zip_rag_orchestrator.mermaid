@@ -1,0 +1,13 @@
+sequenceDiagram
+  title RAG Troubleshooting — minimal path
+  participant UI as Chat UI
+  participant RAG as RAG Orchestrator (AKS)
+  participant VDB as Vector DB
+  participant LLM as LLM Service (GPU)
+
+  UI->>RAG: POST /query {question, asset}
+  RAG->>VDB: Retrieve top‑k chunks
+  VDB-->>RAG: Context
+  RAG->>LLM: Prompt + Context
+  LLM-->>RAG: Answer (grounded)
+  RAG-->>UI: Steps + citations

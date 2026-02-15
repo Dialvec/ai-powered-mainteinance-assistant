@@ -1,3 +1,5 @@
+![Architecture overview](./img/C4_L1.png)
+
 # Edge & Factory Floor Layer
 - Industrial sensors / PLCs / SCADA
 - Edge gateway agents
@@ -149,4 +151,4 @@ Responsibilities:
 - Register + promote ML models
 - Test data pipelines
 
-![Architecture overview](./img/architecture.png)
+![Architecture overview](./img/C4_L2.png)

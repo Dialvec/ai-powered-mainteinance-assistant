@@ -1,0 +1,30 @@
+flowchart TB
+  %% ==================================================
+  %% C4 Level 3 — RAG Orchestrator (FastAPI + LangChain/LlamaIndex)
+  %% ==================================================
+  subgraph rag_srv[RAG Orchestrator Service]
+    direction TB
+    router[HTTP Router]
+    auth["Auth Middleware (Azure AD)"]
+    parser[Query Parser / Intent Classifier]
+    retriever["Retriever (Vector DB client)"]
+    reranker["Reranker (cross-encoder, optional)"]
+    prompt[Prompt Builder + Context Assembler]
+    guard["Guardrails & Safety Filters (policy checks, PII redaction)"]
+    llm_client["LLM Client (to GPU service)"]
+    formatter[Answer Formatter & Citations]
+    telemetry[Telemetry & Tracing]
+  end
+
+  %% External
+  ui["[Troubleshooting UI]"]
+  vdb["(Vector DB: Milvus / Azure AI Search)"]
+  llm["[LLM Inference Service (GPU on AKS)]"]
+  docs["(Document sources: manuals, SOPs, incident notes)"]
+  obs["[Azure Monitor / Grafana]"]
+  eval["[Evidently/DeepEval (LLM response eval)]"]
+  ui --> router --> auth --> parser
+  parser --> retriever --> vdb
+  retriever --> reranker --> prompt --> guard --> llm_client --> llm --> formatter --> ui
+  formatter --> telemetry --> obs
+  formatter --> eval

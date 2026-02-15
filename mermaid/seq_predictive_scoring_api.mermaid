@@ -1,0 +1,39 @@
+sequenceDiagram
+  title Predictive Scoring API — Online Inference (AKS + Azure ML)
+  participant App as Maintenance App
+  participant Ing as Ingress / API Gateway
+  participant API as Predictive Scoring API (FastAPI)
+  participant AAD as Azure AD (Token Introspection)
+  participant FS as Feature Store / Delta
+  participant AML as Azure ML Model Registry
+  participant RT as Model Runtime (Torch/ONNX)
+  participant Tele as Telemetry (Azure Monitor)
+  participant Drift as Drift Monitor (Evidently/InspectAI)
+
+  App->>Ing: HTTPS POST /predict {asset_id, signals, token}
+  Ing->>API: Forward request
+  API->>AAD: Validate JWT / scopes
+  AAD-->>API: OK (claims)
+
+  API->>API: Validate schema & defaults
+  API->>FS: Fetch latest features (asset_id, window)
+  FS-->>API: Feature vector
+
+  alt Cold start or model not loaded
+    API->>AML: Get production model (version/tag)
+    AML-->>API: Model artifact URI
+    API->>RT: Load model (warmup)
+  end
+
+  API->>RT: Predict(features)
+  RT-->>API: score, uncertainty
+
+  API->>API: Post-process (thresholds, labels, rules)
+  API-->>Ing: 200 OK {score, label, explanation}
+  Ing-->>App: Response
+
+  par Telemetry
+    API->>Tele: Logs, latency, status codes, custom metrics
+  and Drift monitoring
+    API->>Drift: Async send {features, score, model_version}
+  end
