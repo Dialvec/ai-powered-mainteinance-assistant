@@ -1,0 +1,67 @@
+flowchart LR
+  %% ====== EDGE / INGESTION ======
+  subgraph Edge["Factories & Edge"]
+    SENSORS[Industrial Sensors/PLC/SCADA]
+    GW["Field Gateway (OPC‑UA/MQTT)"]
+    SENSORS --> GW
+  end
+
+  subgraph Ingest["Ingestion & Data"]
+    EH["Azure Event Hubs"]
+    DL["Azure Data Lake Storage (Delta tables)"]
+    FE["Feature Engineering (stream + batch)"]
+    GW --> EH
+    EH --> FE
+    FE --> DL
+  end
+
+  %% ====== ML TRAINING ======
+  subgraph ML["Model Training & Registry"]
+    AML["Azure Machine Learning (Training, Registry, MLflow)"]
+    KV["(Azure Key Vault)"]
+    DL --> AML
+    KV <--> AML
+  end
+
+  %% ====== RAG: DOC PIPELINE ======
+  subgraph RAG_Ingest["Document Ingestion"]
+    DOCS[Manuals, SOPs, Logs, Technician Notes]
+    PARSE["Parsing & Chunking (PDF/HTML/Images -> text)"]
+    EMBED["Embedding Service (HF/Azure OpenAI embeddings)"]
+    VDB["Vector DB (Milvus or Azure AI Search vector index)"]
+    DOCS --> PARSE --> EMBED --> VDB
+  end
+
+  %% ====== SERVING ======
+  subgraph Serving["Online Serving (AKS)"]
+    AKS["Azure Kubernetes Service API Gateway + FastAPI services"]
+    PMAPI[Predictive Scoring API]
+    RAGSRV["RAG Orchestrator Service (LangChain/LlamaIndex)"]
+    LLM["LLM Inference (GPU) MIG/GPUpartitioning"]
+    AKS --> PMAPI
+    AKS --> RAGSRV
+    RAGSRV --> VDB
+    RAGSRV --> LLM
+  end
+
+  %% ====== UI ======
+  subgraph Apps["Applications"]
+    MAINTUI["Maintenance Application (dashboard & alerts)"]
+    TSHOOT["Technician Troubleshooting UI (chat)"]
+    MAINTUI --> PMAPI
+    TSHOOT --> RAGSRV
+  end
+
+  %% ====== OBSERVABILITY ======
+  subgraph Obs["Observability & Monitoring"]
+    AMON[Azure Monitor / Logs / Metrics]
+    EVD["EvidentlyAI (Drift & Data Quality)"]
+    AKS --> AMON
+    PMAPI --> EVD
+    RAGSRV --> EVD
+  end
+
+  %% ====== AUX FLOWS ======
+  AML --> AKS
+  KV <--> AKS
+  FE --> PMAPI

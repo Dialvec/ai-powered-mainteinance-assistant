@@ -1,0 +1,80 @@
+
+flowchart TB
+  %% ================================
+  %% C4 Level 1 — System Context
+  %% Intelligent Maintenance Assistant
+  %% ================================
+
+  %% ---- Persons ----
+  person_tech(👷 Technician - Frontline maintenance)
+  person_mgr(👩‍💼 Supervisor / Plant Manager - KPI & planning)
+
+  %% ---- External Systems / Context ----
+  ext_scada(🏭 SCADA / PLCs / Sensors Factory OT Systems)
+  ext_cmms(🧰 ERP / CMMS\nWork orders, parts, incidents)
+  ext_docs(📚 Document Repositories - Manuals, SOPs, PDFs, Notes)
+  ext_idp(🔐 Azure AD OIDC - Identity Provider)
+  ext_alerts(📨 Ticketing / Notifications - Email, Teams, Webhooks)
+  ext_monitor(📈 Azure Monitor / Grafana - Logs • Metrics • Traces)
+
+  %% ---- System Under Design ----
+  subgraph system[🧠 Intelligent Maintenance Assistant]
+    direction TB
+
+    %% a small internal hub to attach external edges
+    sys_bus{{System Boundary}}
+
+    ui_app["🖥️ Maintenance Application\n(Dashboards & Alerts)"]
+    ui_tshoot["💬 Troubleshooting Assistant (LLM + RAG Chat)"]
+
+    api_pred["🔧 Predictive APIs (FastAPI on AKS)"]
+    api_rag["📎 RAG Orchestrator API (Context retrieval + LLM)"]
+
+    data_stream["⚡ Ingestion & Feature Pipeline (Event Hubs + Feature Jobs)"]
+    data_lake["🗂️ Data Lake (Delta Telemetry, Features, Incidents)"]
+
+    ml_train["🤖 Azure ML - Training & Registry (PyTorch/Sklearn • MLflow)"]
+    llm_serving["🧩 LLM Serving on AKS (GPU) (MIG/Partitioning)"]
+    vectordb["🔎 Vector DB (Milvus / Azure AI Search)"]
+
+    monitor["🛡️ Drift & Data Quality (Evidently/InspectAI)"]
+  end
+
+  %% ---- Relationships (People -> System) ----
+  person_tech -->|Investigate alerts & Ask questions| ui_tshoot
+  person_tech -->|View machine health| ui_app
+  person_mgr -->|Monitor KPIs & Plan maintenance| ui_app
+
+  %% ---- Relationships (External -> System) ----
+  ext_scada -->|Sensor & event streams| data_stream
+  ext_cmms <-->|Work orders • Asset metadata| ui_app
+  ext_docs -->|Manuals, SOPs, notes| api_rag
+  ext_idp -->|SSO / Tokens| ui_app
+  ext_idp -->|SSO / Tokens| ui_tshoot
+
+  %% ---- Internal System Interactions ----
+  ui_app -->|Risk & anomaly requests| api_pred
+  ui_tshoot -->|Question + context request| api_rag
+
+  data_stream -->|Curated features| data_lake
+  data_lake -->|Training datasets| ml_train
+
+  ml_train -->|Deploy registered models| api_pred
+  api_pred -->|Online inference| ui_app
+
+  api_rag -->|Embed / Retrieve| vectordb
+  api_rag -->|Grounded prompts| llm_serving
+  llm_serving -->|Guidance & steps| ui_tshoot
+
+  %% ---- Observability / Feedback ----
+  api_pred -->|Predictions & Inputs| monitor
+  api_rag -->|RAG telemetry| monitor
+  sys_bus -.->|Logs & Metrics & Traces| ext_monitor
+  monitor -->|Alerts & Tickets| ext_alerts
+
+  %% ---- Styling (optional for readability) ----
+  classDef person fill:#fff,stroke:#333,stroke-width:1px
+  classDef systemNode fill:#F6FAFF,stroke:#3B82F6,stroke-width:1.5px
+
+  class person_tech,person_mgr person
+  class ui_app,ui_tshoot,api_pred,api_rag,data_stream,data_lake,ml_train,llm_serving,vectordb,monitor,sys_bus systemNode
