@@ -149,4 +149,4 @@ Responsibilities:
 - Register + promote ML models
 - Test data pipelines
 
-[![Architecture overview](./img/architecture.png)
+![Architecture overview](./img/architecture.png)
