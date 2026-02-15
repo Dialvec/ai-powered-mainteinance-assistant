@@ -148,3 +148,5 @@ Responsibilities:
 - Deploy containers to AKS
 - Register + promote ML models
 - Test data pipelines
+
+![Architecture overview](./img/architecture_ligth.svg)
